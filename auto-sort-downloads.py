@@ -1,6 +1,9 @@
 import os
 import shutil
-import watchdog
+from watchdog import observers
+from watchdog.events import FileSystemEventHandler
+import time
+
 
 def get_os_download_path():
     """Returns the default downloads path for linux or windows"""
@@ -28,3 +31,26 @@ def sort_files():
                     ext_dest = os.path.join(path, ext, entry.name)
                     # os.makedirs(ext_dest, exist_ok=True)
                     os.replace(entry.name, ext_dest)
+
+class MyHandler(FileSystemEventHandler):
+    def on_created(self, event):
+        # sort_files()
+        print(f'event type: {event.event_type}  path : {event.src_path}')
+
+def start_observer():
+    path = get_os_download_path()
+    event_handler = MyHandler()
+    observer = observers.Observer()
+    observer.schedule(event_handler, path, recursive=False)
+    observer.start()
+    try:
+        while True:
+            time.sleep(10)
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()
+
+start_observer()
+
+
+
