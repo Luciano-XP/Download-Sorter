@@ -1,5 +1,6 @@
 import os
 import shutil
+# import io
 from watchdog import observers
 from watchdog.events import FileSystemEventHandler
 import time
@@ -17,24 +18,56 @@ def get_os_download_path():
     else:
         return os.path.join(os.path.expanduser('~'), 'Downloads')
     
+# def wait_for_download(path, file, dl_size_bottom=1):
+#     dl_size_top = os.path.getsize(os.path.join(path, file))
+#     if dl_size_top == dl_size_bottom:
+#         return True
+#     else:
+#         time.sleep(.5)
+#         wait_for_download(path, file, dl_size_top)    
+
+def wait_for_download(file):
+    size_bottom = -1
+    try:
+        while True:
+            if size_bottom != os.path.getsize(os.path.join(get_os_download_path(), file)):
+                size_bottom = os.path.getsize(os.path.join(get_os_download_path(), file))
+                time.sleep(1)
+    except FileNotFoundError:
+        return True
+        
+        
+
+
+
 def sort_files():
     path = get_os_download_path()
     with os.scandir(path) as it:
         for entry in it:
-            if not entry.name.startswith('.') and entry.is_file():
-                ext = os.path.splitext(entry.name)[-1][1:].upper() #get file extension without "." and convert to uppercase
+            ext = os.path.splitext(entry.name)[-1][1:].upper() #get file extension without "." and convert to uppercase
+            if entry.name.endswith('.crdownload') or entry.name.endswith('.tmp') or entry.name.endswith('.part'):
+                wait_for_download(entry.name)==True
+            if not entry.name.startswith('.') and entry.is_file() and entry.name!='desktop.ini' and not entry.name.endswith('.crdownload') and not entry.name.endswith('.tmp') and not entry.name.endswith('.part'):
                 try:
                     ext_dest = os.path.join(path, ext)
                     os.makedirs(ext_dest, exist_ok=True)
-                    shutil.move(entry.name, ext_dest) #copyfile() is most optimized for windows
-                except:
-                    ext_dest = os.path.join(path, ext, entry.name)
-                    # os.makedirs(ext_dest, exist_ok=True)
-                    os.replace(entry.name, ext_dest)
+                    # wait_for_download(entry.name)
+                    
+                    shutil.move(os.path.join(path, entry.name), os.path.join(ext_dest, entry.name)) #copyfile() is most optimized for windows
+                except PermissionError:
+                    time.sleep(3)
+                # except:
+                #     ext_dest = os.path.join(path, ext, entry.name)
+                #     # os.makedirs(ext_dest, exist_ok=True)
+                #     os.replace(entry.name, ext_dest)
 
 class MyHandler(FileSystemEventHandler):
     def on_created(self, event):
-        # sort_files()
+        sort_files()
+        print(f'event type: {event.event_type}  path : {event.src_path}')
+    def on_deleted(self, event, marker=1):
+        print(f'event type: {event.event_type}  path : {event.src_path}')   
+    def on_modified(self, event):
         print(f'event type: {event.event_type}  path : {event.src_path}')
 
 def start_observer():
