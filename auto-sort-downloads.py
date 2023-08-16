@@ -1,6 +1,6 @@
 import os
 import shutil
-# import io
+import datetime #log file timestamps
 from watchdog import observers
 from watchdog.events import FileSystemEventHandler
 import time
@@ -47,12 +47,10 @@ def sort_files():
             ext = os.path.splitext(entry.name)[-1][1:].upper() #get file extension without "." and convert to uppercase
             if entry.name.endswith('.crdownload') or entry.name.endswith('.tmp') or entry.name.endswith('.part'):
                 wait_for_download(entry.name)==True
-            if not entry.name.startswith('.') and entry.is_file() and entry.name!='desktop.ini' and not entry.name.endswith('.crdownload') and not entry.name.endswith('.tmp') and not entry.name.endswith('.part'):
+            if not entry.name.startswith('.') and entry.is_file() and entry.name!='desktop.ini' and entry.name!='log.txt' and not entry.name.endswith('.crdownload') and not entry.name.endswith('.tmp') and not entry.name.endswith('.part'):
                 try:
                     ext_dest = os.path.join(path, ext)
                     os.makedirs(ext_dest, exist_ok=True)
-                    # wait_for_download(entry.name)
-                    
                     shutil.move(os.path.join(path, entry.name), os.path.join(ext_dest, entry.name)) #copyfile() is most optimized for windows
                 except PermissionError:
                     time.sleep(3)
@@ -62,19 +60,27 @@ def sort_files():
                 #     os.replace(entry.name, ext_dest)
 
 class MyHandler(FileSystemEventHandler):
+    def on_any_event(self, event):
+        current_time = datetime.datetime.now()
+        formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')  # 2020-04-30 16:09:32
+        log_info = f'{formatted_time} - event type: {event.event_type}  src_path: {event.src_path}\n'
+        if event.src_path.endswith('log.txt')==False:
+            with open(os.path.join(get_os_download_path(),'log.txt'), 'a+') as log_file:
+                log_file.write(log_info)
+            print(log_info)
     def on_created(self, event):
         sort_files()
-        print(f'event type: {event.event_type}  path : {event.src_path}')
-    def on_deleted(self, event, marker=1):
-        print(f'event type: {event.event_type}  path : {event.src_path}')   
-    def on_modified(self, event):
-        print(f'event type: {event.event_type}  path : {event.src_path}')
+    # def on_deleted(self, event, marker=1):
+    #     print(log)   
+    # def on_modified(self, event):
+    #     print(log)
+    
 
 def start_observer():
     path = get_os_download_path()
     event_handler = MyHandler()
     observer = observers.Observer()
-    observer.schedule(event_handler, path, recursive=False)
+    observer.schedule(event_handler, path, recursive=True)
     observer.start()
     try:
         while True:
