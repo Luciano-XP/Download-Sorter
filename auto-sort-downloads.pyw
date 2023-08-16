@@ -17,14 +17,6 @@ def get_os_download_path():
         return location
     else:
         return os.path.join(os.path.expanduser('~'), 'Downloads')
-    
-# def wait_for_download(path, file, dl_size_bottom=1):
-#     dl_size_top = os.path.getsize(os.path.join(path, file))
-#     if dl_size_top == dl_size_bottom:
-#         return True
-#     else:
-#         time.sleep(.5)
-#         wait_for_download(path, file, dl_size_top)    
 
 def wait_for_download(file):
     size_bottom = -1
@@ -35,10 +27,6 @@ def wait_for_download(file):
                 time.sleep(1)
     except FileNotFoundError:
         return True
-        
-        
-
-
 
 def sort_files():
     path = get_os_download_path()
